@@ -1,0 +1,250 @@
+Following Document defined in RFC way with usage of ABNF for protocol notation
+to understand and use following document, knowledge of ABNF notation as described in RFC 5234 is expected
+
+This is a Proposed RFC for functional api parameter description in
+specifications and / or process descriptions of API interfaces
+
+=========================================================================================================
+; import ABNF core from RFC 5234 / Appendix B
+
+ALPHA	= %x41-5A / %x61-7A							; A-Z / a-z
+BIT		= "0" / "1"
+CHAR	= %x01-7F									; any 7-bit US-ASCII character, excluding NUL
+CR		= %x0D										; carriage return
+CRLF	= CR LF										; Internet standard newline
+CTL		= %x00-1F / %x7F 							; controls
+DIGIT	= %x30-39									; 0-9
+DQUOTE	= %x22										; " (Double Quote)
+HEXDIG	= DIGIT / "A" / "B" / "C" / "D" / "E" / "F" ; hexidigital value
+HTAB	= %x09										; horizontal tab
+LF		= %x0A										; linefeed
+OCTET	= %x00-FF									; 8 bits of data
+SP		= %x20										; ASCII space character
+VCHAR	= %x21-7E									; visible (printing) characters
+WSP		= SP / HTAB									; white space
+
+; simbol definition:
+
+ALPHANUM	= ALPHA / DIGIT
+LESSTHAN	= "<"
+MORETHAN	= ">"
+EQUALS		= [SP] "=" [SP]
+DOT			= "."
+COLON		= ":"
+VBAR		= "|"
+COMMA		= "," [SP]
+LBRACE		= "("
+RBRACE		= ")"
+QLBRACE		= "["
+QRBRACE		= "]"
+REF			= "&"
+UNDERSCORE	= "_"
+DASH		= "-"
+
+; base types
+
+intValue		= 1*DIGIT
+floatValue		= 1*DIGIT DOT 1*DIGIT
+stringValue		= 1*VCHAR
+
+; arrays
+
+arrayValue		= QLBRACE params QRBRACE
+
+; ranges
+
+edgeType		= intValue / floatValue / VCHAR
+openRangeValue	= (edgeType "..") / (".." edgeType)
+rangeValue		= (edgeType ".." edgeType) / openRangeValue
+
+typedCollection	= QLBRACE (typeReference / valueType) QRBRACE
+typedValue		= arrayValue / intValue / floatValue / stringValue / rangeValue
+
+; simple type litteral notation
+
+L-INT		= "int" / "integer"
+L-FLOAT		= "float"
+L-DECIMAL	= "dec" / "decimal"
+L-CHAR		= "chr" / "char"
+L-STRING	= "str" / "string"
+L-BOOL		= "bool" / "boolean" / "bit"
+L-ARRAY		= "array" / "[]"
+L-OBJECT	= "obj" / "object" / "{}"
+
+valueType		= L-INT / L-FLOAT / L-DECIMAL / L-CHAR / L-STRING / L-BOOL / L-ARRAY / L-OBJECT
+
+param			= typeTransfomer / typeReference / typedValue / typedCollection
+params			= param *(COMMA param)
+paramSignature	= LBRACE params RBRACE
+
+typeName				= ALPHA *(ALPHANUM / UNDERSCORE / DASH)
+typeReference			= typeName [paramSignature]
+		; defines type reference for described interface "real types" (the ones it operates on)
+transformer				= typeName paramSignature
+		; defines a funtion call to transform an incoming type or value
+transformerChain		= (transformer / typeReference) *(DOT (transformer / typeReference))
+		; last optional part allows to create chains of transformers applyed to other trasformer or typeReference
+defaultValueDefinition	= VBAR [(typeReference / transformer) EQUALS] typedValue
+		; end part of complex definition, used to specify a default value if none supported
+simpleTypeDefinition	= valueType [LBRACE intValue [COMMA intValue] RBRACE]
+		; used to define expected value type with or without maximum lenght e.g.: int, string(160), decimal(2,3)
+valueTypeDefition		= simpleTypeDefinition / (transformerChain [EQUALS simpleTypeDefinition])
+		; defines required part of complex type a value type definition
+expectedTypeDefinition	= (typeReference / transformerChain)
+expectedValueDefinition	= valueTypeDefition
+
+complexTypeDefinition	= LESSTHAN [expectedTypeDefinition COLON] expectedValueDefinition [defaultValueDefinition] MORETHAN
+		; define a type in any context using this pattern (final definition) - includes everything described above.
+
+; parameter references in document body
+
+paramName				= (ALPHA / UNDERSCORE) *(ALPHANUM / UNDERSCORE)
+		; parameter name here means a name under which accepted value is known within the scope
+structureParamReference	= REF paramName
+		; reference in strucured context e.g. in example JSON
+stringParamReference	= LESSTHAN paramName MORETHAN
+		; reference in textual context e.g. in interface description
+
+=========================================================================================================
+
+Concepts:
+
+describe a process needed to prepare value from context
+describe a process needed to validate provided value
+describe expected type
+describe behavior if value not provided
+
+all in one simple definition of a parameter no longer than one line
+
+processes and definitions presented as functional sequences
+
+reference described pameter or type within the document containing definition or reference to one
+
+Usage concepts:
+
+	type as reference to context
+
+		simple textual reference to contextual entity within document
+		e.g. "city" - is an entity with known attributes on which described interface operates on
+		it is contextualy described
+
+	type as function call
+
+		cast abstract textual definition of entity to contextualy defined type
+		city(MSK) - is abstract definition MSK - references Moscow - is casted to known contextual entity "city"
+
+	attribute or field as function call
+
+		pick an attribute from object of type by calling attribute name from typeReference
+		e.g. id(city) meas what you need to supply attribute "id" of type "city"
+
+	chains of transformation
+
+		transformer element allows you to describe sequences of transformations applyed to type or value
+		under definition of transformation you can understood:
+			picking attribute from typeReference
+			applying self-describable function to typeReference
+			calling contextualy known method of type
+		e.g.
+			city.location.latitude - is chain to peek a nested attribute from typeReference
+			enum([city].name) - extract and enumerate name from all cities
+
+	simple types
+
+		one may specify expected simple type as parameter value, transformation result or default
+		e.g.
+			int - expecting some integer value
+			str(100) - expecting string no longer than 100 chars
+			enum([city].id)=int - expecting enumerated city id as int
+
+	collections
+
+		one may specify parameter expected to be a collection of type
+		e.g.
+			[int] - expecting array of int
+			list([city].location)=[location] - expecting collection of locations extracted from city collection
+
+Usage guidelines:
+
+TypeReference:
+	defines type reference for described interface "real types" (the ones interface operates on)
+	i.e. there is some interface which operates certain "real" type e.g. - cities
+
+	cities is a complex type, consisting of id, name and another complex type - coordinates,
+	which in turn consists of latitude and longtitude
+	if we want to say what, in some place, as a parameter, we want a city id we can do it like what:
+
+	simple notation:
+
+		city_id
+		cityId
+
+	process notation (forces checking of city_id existence)
+
+		enum(city_id)
+
+	transform notation: pick a city , get its id
+
+		id(city)
+		city.id()
+
+	process notation - ensure existense of passed value within typed collection of city ids
+
+		enum([city_id])
+
+	process-transform notation understood as: ensure existence of value in set,
+	defined by extraction id from all cities (from typed collection of cities):
+
+		enum(id([city]))
+		city.id().enum()
+
+ComplexTypeDefinition Usage Examples:
+
+	simple value type expected:
+
+		<int>
+
+	simple value type with limited length expected
+
+		<string(160)>
+
+	type reference with expected value type
+
+		<cityId:int>
+
+	type reference with expected value type limited to specified lenght
+
+		<cityName:string(160)>
+
+	type reference with expected value type and actual default value
+
+		<quantity:int|1>
+
+	type reference transformed by typeDefinitionFunctor, expected value type, actual default value
+
+		<enum(cities):int|1>
+
+	type reference, expected value described as functor, actual default value
+
+		<typeName:enum(1,2,3)|1>
+
+	transformed notation (forces checking of city_id existence), ensure it represented as INT, if not supplied 1 must be used as value
+
+		<enum(city_id):int|1>
+
+	transform notation: pick a city , get its id, represent as int , if not provided assume 1 as value
+
+		<id(city):int|1>
+
+	strong notation understood as:
+		ensure existence of value in set defined by extraction id from all cities,
+		ensure it is represented as int,
+		defaulted to id of city known as MSK
+
+		<enum(id([city])):int:id(city(MSK))>
+
+	full notation
+
+		<city.enum().id():int(4)|city(MSK).id()=1>
+		<id(enum([city])):int(4)|id(city(MSK))=1>
+		<enum(city.id()):trim()=string(160)|city(MSK).name()=Moscow>
