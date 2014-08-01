@@ -109,16 +109,13 @@ stringParamReference	= LESSTHAN paramName MORETHAN
 
 Concepts:
 
-describe a process needed to prepare value from context
-describe a process needed to validate provided value
-describe expected type
-describe behavior if value not provided
-
-all in one simple definition of a parameter no longer than one line
-
-processes and definitions presented as functional sequences
-
-reference described pameter or type within the document containing definition or reference to one
+1. describe a process needed to prepare value from context
+2. describe a process needed to validate provided value
+3. describe expected type
+4. describe behavior if value not provided
+5. all in one simple definition of a parameter no longer than one line
+6. reference described pameter or type within the document containing definition or reference to one
+7. present processes and definitions as functional sequences and / or call chains
 
 Usage concepts:
 
@@ -131,7 +128,13 @@ Usage concepts:
 	type as function call
 
 		cast abstract textual definition of entity to contextualy defined type
-		city(MSK) - is abstract definition MSK - references Moscow - is casted to known contextual entity "city"
+		e.g. in document we contextualy define a type "city" as entity, having id, name and location(lat,lng) attributes
+
+			city(MSK)
+
+		abstract definition "MSK", which references Moscow, Russia - is casted to known contextual entity "city"
+		so output value of this sentence is object of type "city", representing a city of Moscow
+		with some integer id, name equal to "Moscow" and location(lat,lng) subentity
 
 	attribute or field as function call
 
