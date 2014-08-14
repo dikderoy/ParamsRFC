@@ -32,6 +32,7 @@ EQUALS		= [SP] "=" [SP]
 DOT			= "."
 COLON		= ":"
 VBAR		= "|"
+OR			= "/"
 COMMA		= "," [SP]
 LBRACE		= "("
 RBRACE		= ")"
@@ -39,13 +40,13 @@ QLBRACE		= "["
 QRBRACE		= "]"
 REF			= "&"
 UNDERSCORE	= "_"
-DASH		= "-"
 
 ; base types
 
 intValue		= 1*DIGIT
 floatValue		= 1*DIGIT DOT 1*DIGIT
 stringValue		= 1*VCHAR
+binaryData		= 1*BIT
 
 ; arrays
 
@@ -73,11 +74,11 @@ L-OBJECT	= "obj" / "object" / "{}"
 
 valueType		= L-INT / L-FLOAT / L-DECIMAL / L-CHAR / L-STRING / L-BOOL / L-ARRAY / L-OBJECT
 
-param			= typeTransfomer / typeReference / typedValue / typedCollection
+param			= typeTransfomer / typeReference / typedValue / typedCollection / binaryData / structureParamReference
 params			= param *(COMMA param)
-paramSignature	= LBRACE params RBRACE
+paramSignature	= LBRACE [params] RBRACE
 
-typeName				= ALPHA *(ALPHANUM / UNDERSCORE / DASH)
+typeName				= ALPHA *(ALPHANUM / UNDERSCORE)
 typeReference			= typeName [paramSignature]
 		; defines type reference for described interface "real types" (the ones it operates on)
 transformer				= typeName paramSignature
@@ -90,7 +91,8 @@ simpleTypeDefinition	= valueType [LBRACE intValue [COMMA intValue] RBRACE]
 		; used to define expected value type with or without maximum lenght e.g.: int, string(160), decimal(2,3)
 valueTypeDefition		= simpleTypeDefinition / (transformerChain [EQUALS simpleTypeDefinition])
 		; defines required part of complex type a value type definition
-expectedTypeDefinition	= (typeReference / transformerChain)
+expectedTypeDefinition	= (typeReference / transformerChain) / (transformerChain EQUALS typeReference *(OR typeReference))
+		; second option is for ability to describe dependencies in parameter values using combination of transformerChain and typeReference
 expectedValueDefinition	= valueTypeDefition
 
 complexTypeDefinition	= LESSTHAN [expectedTypeDefinition COLON] expectedValueDefinition [defaultValueDefinition] MORETHAN
@@ -151,6 +153,14 @@ Usage concepts:
 		e.g.
 			city.location.latitude - is chain to peek a nested attribute from typeReference
 			enum([city].name) - extract and enumerate name from all cities
+
+	chains of transformation with dependencies
+
+		used to describe changeable value treating dependent on other parameter or abstract condition
+
+			<address(&channelType)=email/phone:string|null>
+
+		treating of this parameter's value is dependent on others parameter value (<channelType>) and could be resolved as email or phone
 
 	simple types
 
