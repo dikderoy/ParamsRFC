@@ -1,0 +1,109 @@
+Following Document defined in RFC way with usage of ABNF for protocol notation
+to understand and use following document, knowledge of ABNF notation as described in RFC 5234 is expected
+but is not necessary
+
+This is a Proposed RFC for functional api parameter description in
+specifications and / or process descriptions of API interfaces
+
+=========================================================================================================
+; import ABNF core from RFC 5234 / Appendix B
+
+ALPHA	= %x41-5A / %x61-7A							; A-Z / a-z
+BIT		= "0" / "1"
+CHAR	= %x01-7F									; any 7-bit US-ASCII character, excluding NUL
+CR		= %x0D										; carriage return
+CRLF	= CR LF										; Internet standard newline
+CTL		= %x00-1F / %x7F 							; controls
+DIGIT	= %x30-39									; 0-9
+DQUOTE	= %x22										; " (Double Quote)
+HEXDIG	= DIGIT / "A" / "B" / "C" / "D" / "E" / "F" ; hexidigital value
+HTAB	= %x09										; horizontal tab
+LF		= %x0A										; linefeed
+OCTET	= %x00-FF									; 8 bits of data
+SP		= %x20										; ASCII space character
+VCHAR	= %x21-7E									; visible (printing) characters
+WSP		= SP / HTAB									; white space
+
+; simbol definition:
+
+ALPHANUM	= ALPHA / DIGIT
+LESSTHAN	= "<"
+MORETHAN	= ">"
+EQUALS		= [SP] "=" [SP]
+DOT			= "."
+COLON		= ":"
+VBAR		= "|"
+OR			= "/"
+COMMA		= "," [SP]
+LBRACE		= "("
+RBRACE		= ")"
+QLBRACE		= "["
+QRBRACE		= "]"
+REF			= "&"
+UNDERSCORE	= "_"
+
+; base types
+
+intValue		= 1*DIGIT
+floatValue		= 1*DIGIT DOT 1*DIGIT
+stringValue		= 1*VCHAR
+binaryData		= 1*BIT
+
+; arrays
+
+arrayValue		= QLBRACE params QRBRACE
+
+; ranges
+
+edgeType		= intValue / floatValue / VCHAR
+openRangeValue	= (edgeType "..") / (".." edgeType)
+rangeValue		= (edgeType ".." edgeType) / openRangeValue
+
+typedCollection	= QLBRACE (typeReference / valueType) QRBRACE
+typedValue		= arrayValue / intValue / floatValue / stringValue / rangeValue
+
+; simple type litteral notation
+
+L-INT		= "int" / "integer"
+L-FLOAT		= "float"
+L-DECIMAL	= "dec" / "decimal"
+L-CHAR		= "chr" / "char"
+L-STRING	= "str" / "string"
+L-BOOL		= "bool" / "boolean" / "bit"
+L-ARRAY		= "array" / "[]"
+L-OBJECT	= "obj" / "object" / "{}"
+
+valueType		= L-INT / L-FLOAT / L-DECIMAL / L-CHAR / L-STRING / L-BOOL / L-ARRAY / L-OBJECT
+
+param			= typeTransfomer / typeReference / typedValue / typedCollection / binaryData / structureParamReference
+params			= param *(COMMA param)
+paramSignature	= LBRACE [params] RBRACE
+
+typeName				= ALPHA *(ALPHANUM / UNDERSCORE)
+typeReference			= typeName [paramSignature]
+		; defines type reference for described interface "real types" (the ones it operates on)
+transformer				= typeName paramSignature
+		; defines a funtion call to transform an incoming type or value
+transformerChain		= (transformer / typeReference) *(DOT (transformer / typeReference))
+		; last optional part allows to create chains of transformers applyed to other trasformer or typeReference
+defaultValueDefinition	= VBAR [(typeReference / transformer) EQUALS] typedValue
+		; end part of complex definition, used to specify a default value if none supported
+simpleTypeDefinition	= valueType [LBRACE intValue [COMMA intValue] RBRACE]
+		; used to define expected value type with or without maximum lenght e.g.: int, string(160), decimal(2,3)
+valueTypeDefition		= simpleTypeDefinition / (transformerChain [EQUALS simpleTypeDefinition])
+		; defines required part of complex type a value type definition
+expectedTypeDefinition	= (typeReference / transformerChain) / (transformerChain EQUALS typeReference *(OR typeReference))
+		; second option is for ability to describe dependencies in parameter values using combination of transformerChain and typeReference
+expectedValueDefinition	= valueTypeDefition
+
+complexTypeDefinition	= LESSTHAN [expectedTypeDefinition COLON] expectedValueDefinition [defaultValueDefinition] MORETHAN
+		; define a type in any context using this pattern (final definition) - includes everything described above.
+
+; parameter references in document body
+
+paramName				= (ALPHA / UNDERSCORE) *(ALPHANUM / UNDERSCORE)
+		; parameter name here means a name under which accepted value is known within the scope
+structureParamReference	= REF paramName
+		; reference in strucured context e.g. in example JSON
+stringParamReference	= LESSTHAN paramName MORETHAN
+		; reference in textual context e.g. in interface description
