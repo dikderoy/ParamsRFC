@@ -11,7 +11,7 @@ The description goes in context, and this allows description to be informative.
 To give your developer a lead there to look for incoming data,
 how to preprocess it and how to validate it, once it comes throught the interface
 
-**see [concepts](/dikderoy/ParamsRFC/blob/master/concept.md) to fully understand the concepts of this reference**
+**see [concepts](/concept.md) to fully understand the concepts of this reference**
 
 Examples:
 ---------
@@ -82,4 +82,4 @@ POST /api/address
 }
 ```
 
-**for more examples and full reference check [reference](/dikderoy/ParamsRFC/blob/master/reference.txt) and [guidelines](/dikderoy/ParamsRFC/blob/master/guidelines.md)**
+**for more examples and full reference check [reference](/reference.txt) and [guidelines](/guidelines.md)**
