@@ -47,7 +47,7 @@ EQUALS      = [SP] "=" [SP]
 DOT         = "."
 COLON       = ":"
 VBAR        = "|"
-OR          = "/"
+OR          = [SP] "/" [SP]
 COMMA       = "," [SP]
 LBRACE      = "("
 RBRACE      = ")"
@@ -94,7 +94,7 @@ param           = typeTransfomer / typeReference
                   / typedValue / typedCollection
                   / binaryData / structureParamReference
 
-params          = param *(COMMA param)
+params          = param *((COMMA/OR) param)
 paramSignature  = LBRACE [params] RBRACE
 
 ; defines type reference for described interface "real types" (the ones it operates on)
@@ -107,7 +107,7 @@ transformer         = typeName paramSignature
 transformerChain    = (transformer / typeReference) *(DOT (transformer / typeReference))
 
 ; end part of complex definition, used to specify a default value if none supported
-defaultValueDefinition  = VBAR [(typeReference / transformer) EQUALS] typedValue
+defaultValueDefinition  = VBAR [(typeReference / transformerChain) EQUALS] typedValue
 
 ; used to define expected value type with or without maximum lenght e.g.: int, string(160), decimal(2,3)
 simpleTypeDefinition    = valueType [LBRACE intValue [COMMA intValue] RBRACE]
@@ -135,3 +135,37 @@ structureParamReference = REF paramName
 
 ; reference in textual context e.g. in interface description
 stringParamReference    = LESSTHAN paramName MORETHAN
+
+
+;; Predined trasformers and common references
+
+;; in default value section:
+
+paramRequired    = "required" [LBRACE intValue [COMMA intValue] RBRACE]
+; usage: <string|required> - not-null-value required
+;        <string(100)|required(10)> - min-lenght of 10 chars required
+
+paramCanBeOmited = "null" / "optional"
+; usage: <country:country.id=int|null>
+
+
+;; in any section:
+enumeratorTransformer = "enum" paramSignature
+; usage examples:
+; enumerator source goes as parameters
+; enum values:  <enum(A,B,C):string>
+;               <type:enum(A,B):string>
+; enum ranges:  <enum(A..Z):string>
+;               <type:enum(1..10):int>
+; enum from type:
+;           following are equal:
+;               <enum([type]):type>
+;               <type.enum():type>
+;           following are equal:
+;               <enum([type.id]):type.id>
+;               <type.enum(id):type.id>
+; technicaly you can enum from any data if it makes sence in your context.
+;               <type.makeSomeMethodCall().enum():int>
+;               <type.enum(property):type.property>
+;               <type(param).enum(property)>
+;               <enum([transform(transoform2(type)])>
